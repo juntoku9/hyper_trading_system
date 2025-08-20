@@ -4,7 +4,10 @@ from hyperliquid.exchange import Exchange
 from hyperliquid.info import Info
 import example_utils
 from hyperliquid.utils import constants
-import time   
+import datetime as dt
+import pprint
+
+from mv_bb import MeanReversionBB
 
 # Set log level to DEBUG
 logging.basicConfig(level=logging.DEBUG)
@@ -16,26 +19,19 @@ def callback(msg):
 
 
 address, info, exchange = example_utils.setup(base_url=constants.MAINNET_API_URL, skip_ws=False)
+pprint.pprint(info.user_state("0xB6001dDB4ecf684A226361812476f731CEA96d05"))
+
+strategy = MeanReversionBB(exchange, info, address, "HYPE")
 
 # Subscribe with the callback  
-subscription = {"type": "allMids"}
+subscription1 = { "type": "candle", "coin": "HYPE", "interval": "1m" }
+subscription2 = { "type": "userFills", "user": address }
 
-while True:
-    result = info.subscribe(subscription, callback)
-    logger.debug(f"Subscribe result: {result}")
-    logger.debug("subscribed")
-    logger.debug(f"Active subscriptions: {info.ws_manager.active_subscriptions}")
-    logger.debug(f"WS ready: {info.ws_manager.ws_ready}")
-    time.sleep(1)
+result1 = info.subscribe(subscription1, strategy.process_message)
+result2 = info.subscribe(subscription2, strategy.process_message)
 
-# user_state = info.user_state("0xB6001dDB4ecf684A226361812476f731CEA96d05")
-# logger.debug(user_state)
-
-# Place an order that should rest by setting the price very low
-# order_result = exchange.order("ETH", True, 0.2, 1100, {"limit": {"tif": "Gtc"}})
-# logger.debug(order_result)
-
-# open_orders = info.open_orders(address)
-# for open_order in open_orders:
-#     logger.debug(f"cancelling order {open_order}")
-#     exchange.cancel(open_order["coin"], open_order["oid"])
+logger.debug(f"Subscribe result: {result1}")
+logger.debug(f"Subscribe result: {result2}")
+logger.debug("subscribed")
+logger.debug(f"Active subscriptions: {info.ws_manager.active_subscriptions}")
+logger.debug(f"WS ready: {info.ws_manager.ws_ready}")
